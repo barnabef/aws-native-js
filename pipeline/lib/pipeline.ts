@@ -33,7 +33,9 @@ export class Pipeline extends cdk.Stack {
       actions: [sourceAction],
     });
 
-    const project = new codebuild.PipelineProject(this, 'BuildProject');
+    const project = new codebuild.PipelineProject(this, 'BuildProject', {
+      buildSpec: codebuild.BuildSpec.fromSourceFilename("pipeline/buildspec.yml")
+    });
     const buildAction = new codepipeline_actions.CodeBuildAction({
       actionName: 'CodeBuild',
       project,
