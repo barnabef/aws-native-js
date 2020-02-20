@@ -5,7 +5,7 @@ phases:
     commands:
       - cd pipeline
       - npm install
-      - npm install -g cdk
+      - npm install -g aws-cdk
   build:
     runtime-versions:
       nodejs: 12
