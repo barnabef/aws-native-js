@@ -2,9 +2,13 @@ version: 0.2
 
 phases:
   install:
+    commands:
+      - cd pipeline
+      - npm install
+      - npm install -g cdk
+  build:
     runtime-versions:
       nodejs: 12
     commands:
-      - cd pipeline
       - npm run build
       - cdk deploy -y
