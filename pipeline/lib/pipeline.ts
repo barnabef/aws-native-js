@@ -3,6 +3,7 @@ import * as codepipeline from '@aws-cdk/aws-codepipeline';
 import * as codepipeline_actions from '@aws-cdk/aws-codepipeline-actions'
 import * as codebuild from '@aws-cdk/aws-codebuild'
 import * as secretsmanager from '@aws-cdk/aws-secretsmanager'
+import * as iam from '@aws-cdk/aws-iam'
 
 import s3 = require('@aws-cdk/aws-s3');
 import {print} from "aws-cdk/lib/logging";
@@ -36,6 +37,8 @@ export class Pipeline extends cdk.Stack {
     const project = new codebuild.PipelineProject(this, 'BuildProject', {
       // buildSpec: codebuild.BuildSpec.fromSourceFilename("pipeline/buildspec.yml")
     });
+
+    project.role?.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"))
     const buildAction = new codepipeline_actions.CodeBuildAction({
       actionName: 'CodeBuild',
       project,
