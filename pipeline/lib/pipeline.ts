@@ -7,9 +7,15 @@ import * as iam from '@aws-cdk/aws-iam'
 
 import s3 = require('@aws-cdk/aws-s3');
 import {print} from "aws-cdk/lib/logging";
+import {StackProps, Stack, Construct} from "@aws-cdk/core";
 
-export class Pipeline extends cdk.Stack {
-  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+export interface PipelineStackProps extends StackProps {
+  readonly githubOwner: string;
+  readonly githubRepo: string
+}
+
+export class Pipeline extends Stack {
+  constructor(scope: Construct, id: string, props: PipelineStackProps) {
     super(scope, id, props);
     // new s3.Bucket(this, 'MyFirstBucket', {
     //   versioned: true,
@@ -22,8 +28,8 @@ export class Pipeline extends cdk.Stack {
 
     const sourceAction = new codepipeline_actions.GitHubSourceAction({
       actionName: 'GitHub_Source',
-      owner: 'barnabef',
-      repo: 'aws-native-js',
+      owner: props.githubOwner,
+      repo: props.githubRepo,
       oauthToken: secret.secretValueFromJson("my-github-token"),
       output: sourceOutput,
       branch: 'master', // default: 'master'
@@ -35,8 +41,27 @@ export class Pipeline extends cdk.Stack {
     });
 
     const project = new codebuild.PipelineProject(this, 'BuildProject', {
-      // buildSpec: codebuild.BuildSpec.fromSourceFilename("pipeline/buildspec.yml")
+      buildSpec: codebuild.BuildSpec.fromObject({
+        version: '0.2',
+        phases: {
+          install: {
+            commands: [
+              'cd app-infra',
+              'npm install'
+            ],
+          },
+          build: {
+            commands: [
+              'npm run build',
+              'npm run cdk deploy'
+            ],
+          },
+        },
+      }),
     });
+
+    const cdkBuildOutput = new codepipeline.Artifact('CdkBuildOutput');
+
 
     project.role?.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"))
     const buildAction = new codepipeline_actions.CodeBuildAction({
@@ -44,7 +69,7 @@ export class Pipeline extends cdk.Stack {
       project,
       input: sourceOutput,
 
-      outputs: [new codepipeline.Artifact()], // optional
+      outputs: [cdkBuildOutput], // optional
     });
     pipeline.addStage({
       stageName: 'Build',
