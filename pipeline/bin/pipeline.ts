@@ -5,6 +5,5 @@ import { Pipeline } from '../lib/pipeline';
 
 const app = new cdk.App();
 new Pipeline(app, 'PipelineStack', {
-    githubRepo: "aws-native-js",
-    githubOwner: "barnabef"
+    secretArn: "arn:aws:secretsmanager:ca-central-1:641225477653:secret:GitHub-TloOYa",
 });

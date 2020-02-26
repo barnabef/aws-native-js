@@ -6,8 +6,7 @@ test('Empty Stack', () => {
     const app = new cdk.App();
     // WHEN
     const stack = new Pipeline(app, 'MyTestStack', {
-        githubRepo: "aws-native-js",
-        githubOwner: "barnabef"
+        secretArn: "arn:aws:secretsmanager:ca-central-1:641225477653:secret:GitHub-TloOYa",
     });
     // THEN
     expectCDK(stack).to(matchTemplate({

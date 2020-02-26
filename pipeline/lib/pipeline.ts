@@ -10,34 +10,24 @@ import {print} from "aws-cdk/lib/logging";
 import {StackProps, Stack, Construct} from "@aws-cdk/core";
 
 export interface PipelineStackProps extends StackProps {
-  readonly githubOwner: string;
-  readonly githubRepo: string
+  readonly secretArn: string;
 }
 
 export class Pipeline extends Stack {
   constructor(scope: Construct, id: string, props: PipelineStackProps) {
     super(scope, id, props);
-    // new s3.Bucket(this, 'MyFirstBucket', {
-    //   versioned: true,
-    // });
-    const pipeline = new codepipeline.Pipeline(this, 'InfrastructurePipeline');
-    // Read the secret from Secrets Manager
 
     const secret = secretsmanager.Secret.fromSecretArn(this, 'ImportedSecret', 'arn:aws:secretsmanager:ca-central-1:641225477653:secret:GitHub-TloOYa');
     const sourceOutput = new codepipeline.Artifact();
 
     const sourceAction = new codepipeline_actions.GitHubSourceAction({
       actionName: 'GitHub_Source',
-      owner: props.githubOwner,
-      repo: props.githubRepo,
-      oauthToken: secret.secretValueFromJson("my-github-token"),
+      owner: secret.secretValueFromJson("owner").toString(),
+      repo: secret.secretValueFromJson("repo").toString(),
+      oauthToken: secret.secretValueFromJson("token"),
       output: sourceOutput,
-      branch: 'master', // default: 'master'
+      branch: secret.secretValueFromJson("branch").toString(), // default: 'master'
       trigger: codepipeline_actions.GitHubTrigger.WEBHOOK // default: 'WEBHOOK', 'NONE' is also possible for no Source trigger
-    });
-    pipeline.addStage({
-      stageName: 'Source',
-      actions: [sourceAction],
     });
 
     const project = new codebuild.PipelineProject(this, 'BuildProject', {
@@ -60,23 +50,23 @@ export class Pipeline extends Stack {
       }),
     });
 
-    const cdkBuildOutput = new codepipeline.Artifact('CdkBuildOutput');
-
-
     project.role?.addManagedPolicy(iam.ManagedPolicy.fromAwsManagedPolicyName("AdministratorAccess"))
     const buildAction = new codepipeline_actions.CodeBuildAction({
       actionName: 'CodeBuild',
       project,
       input: sourceOutput,
-
-      outputs: [cdkBuildOutput], // optional
     });
-    pipeline.addStage({
-      stageName: 'Build',
-      actions: [buildAction],
+    const pipeline = new codepipeline.Pipeline(this, 'InfrastructurePipeline', {
+      stages: [
+        {
+          stageName: 'Source',
+          actions: [sourceAction],
+        },
+        {
+          stageName: 'Build',
+          actions: [buildAction],
+        }
+      ]
     });
-
-
-
   }
 }
